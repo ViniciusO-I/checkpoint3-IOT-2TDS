@@ -1,0 +1,75 @@
+===============================================================
+CHECKPOINT 3 - IoT ESP32 / Node-RED / Mosquitto
+Autor: Vinicius Rodrigues de Oliveira
+Data: Novembro/2025
+===============================================================
+
+🛰️  OBJETIVO
+---------------------------------------------------------------
+Validar a comunicação completa entre Node-RED, Mosquitto MQTT Broker
+e o cliente externo (MacBook), garantindo a transmissão e recepção
+de mensagens MQTT entre dispositivos e serviços.
+
+---------------------------------------------------------------
+ETAPA 1 - TESTES DE PORTAS E CONEXÃO SSH
+---------------------------------------------------------------
+nc -vz 172.200.90.234 22        # Porta SSH - OK (Succeeded)
+nc -vz 172.200.90.234 1880      # Porta Node-RED - Connection refused (inicialmente)
+nc -vz 172.200.90.234 1883      # Porta Mosquitto MQTT - OK (Succeeded após liberação)
+
+---------------------------------------------------------------
+ETAPA 2 - STATUS DOS SERVIÇOS NA VM (Ubuntu Server)
+---------------------------------------------------------------
+sudo systemctl status mosquitto --no-pager
+sudo systemctl status nodered --no-pager
+
+sudo ss -ltnp | grep 1883        # Valida se o Mosquitto escuta na porta 1883
+sudo ss -ltnp | grep 1880        # Valida se o Node-RED está ativo na 1880
+
+---------------------------------------------------------------
+ETAPA 3 - TESTE LOCAL DO BROKER MQTT
+---------------------------------------------------------------
+# Inscrição e publicação local no broker da VM
+mosquitto_sub -h localhost -t teste/topico -u admin -P 'Fiap@2tdsvms' -v
+mosquitto_pub -h localhost -t teste/topico -m "Olá MQTT!" -u admin -P 'Fiap@2tdsvms'
+
+# Resultado esperado:
+teste/topico Olá MQTT!
+
+---------------------------------------------------------------
+ETAPA 4 - TESTE REMOTO (MacBook -> VM)
+---------------------------------------------------------------
+# Publicação a partir do Mac
+mosquitto_pub -h 172.200.90.234 -t teste/topico -m "ping do Mac" -u admin -P 'Fiap@2tdsvms'
+
+# Resultado observado no terminal da VM:
+teste/topico ping do Mac
+
+---------------------------------------------------------------
+ETAPA 5 - TESTE NODE-RED PUBLICANDO VIA MQTT
+---------------------------------------------------------------
+# No Node-RED (fluxo configurado com MQTT OUT e tópico teste/topico)
+# Clicando no nó 'Inject'
+
+# Resultado observado no terminal da VM:
+teste/topico Olá do Node-RED!
+
+---------------------------------------------------------------
+ETAPA 6 - VERIFICAÇÃO FINAL
+---------------------------------------------------------------
+sudo systemctl status mosquitto --no-pager    # Deve mostrar Active (running)
+sudo ss -ltnp | grep 1883                     # Porta aberta
+sudo ss -ltnp | grep 1880                     # Porta aberta
+
+# Comunicação validada em ambos os sentidos:
+# Node-RED → Mosquitto → Cliente (Mac)
+# Cliente (Mac) → Mosquitto → Node-RED
+
+===============================================================
+✅ CONCLUSÃO
+---------------------------------------------------------------
+A comunicação MQTT foi testada com sucesso entre o Node-RED, 
+o broker Mosquitto e o cliente remoto (MacBook). O sistema
+está funcional e pronto para integração com o ESP32 (Q4).
+===============================================================
+
